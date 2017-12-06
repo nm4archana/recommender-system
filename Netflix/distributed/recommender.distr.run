@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH -A uot143
+#SBATCH --job-name="recommender"
+#SBATCH --output="recommender.distr.out"
+#SBATCH --partition=compute
+## allocate 3 nodes for the Hadoop cluster: 3 datanodes, from which 1 is namenode
+#SBATCH --nodes=3
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=5G
+#SBATCH --export=ALL 
+#SBATCH --time=60
+
+export HADOOP_CONF_DIR=/home/$USER/cometcluster
+module load hadoop/2.6.0 spark/1.5.2
+module add python
+myhadoop-configure.sh
+source /home/$USER/cometcluster/spark/spark-env.sh
+start-dfs.sh
+start-yarn.sh
+myspark start
+
+hdfs dfs -mkdir -p /user/$USER
+hdfs dfs -put small_ratings_dataset.txt /user/$USER/small_ratings_dataset.txt
+hdfs dfs -put large_ratings_dataset.txt /user/$USER/large_ratings_dataset.txt
+hdfs dfs -put movie_titles.csv /user/$USER/movie_titles.csv
+
+spark-submit --num-executors 2 movieRecommender.py /user/$USER/small_ratings_dataset.txt /user/$USER/large_ratings_dataset.txt /user/$USER/movie_titles.csv 822109 25 /user/$USER/output
+
+rm -rf output-distr
+mkdir output-distr
+hdfs dfs -get /user/$USER/output/part* output-distr
+
+stop-yarn.sh
+stop-dfs.sh
+myhadoop-cleanup.sh

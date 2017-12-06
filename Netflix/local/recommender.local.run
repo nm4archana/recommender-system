@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH -A uot143
+#SBATCH --job-name="recommender.local"
+#SBATCH --output="recommender.local.out"
+#SBATCH --partition=shared
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=2
+#SBATCH --export=ALL 
+#SBATCH --time=10
+
+module load hadoop/2.6.0 spark/1.5.2
+module add python
+
+rm -rf output intermediate
+spark-submit --master local[2] movieRecommender.py small_ratings_dataset.txt small_ratings_dataset.txt movie_titles.csv 822109 15 output
